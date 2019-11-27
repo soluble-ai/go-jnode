@@ -1,0 +1,9 @@
+steps:
+  - label: ":rocket: Go"
+    command: "golangci-lint run -E gofmt -E stylecheck && go test -cover"
+    plugins:
+      - docker#v3.3.0:
+          image: gcr.io/soluble-ci/go-jnode-ci:latest
+          always-pull: true
+          shell: [ "/bin/bash", "-e", "-c" ] 
+          propagate-uid-gid: true     

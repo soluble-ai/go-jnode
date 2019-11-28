@@ -243,3 +243,36 @@ func TestPutArray(t *testing.T) {
 	}
 	asertJSON(t, n, `{"list":[1,2]}`)
 }
+
+func TestUnwrap(t *testing.T) {
+	n := NewArrayNode().Append(1).Append(2)
+	u := n.Unwrap().([]interface{})
+	if len(u) != 2 || u[0].(int) != 1 {
+		t.Fail()
+	}
+}
+
+func TestMarshal(t *testing.T) {
+	n := NewObjectNode()
+	if err := json.Unmarshal([]byte(`{"username":"foo","token":"bar"}`), n); err != nil {
+		t.Error(err)
+	}
+	if n.Path("username").AsText() != "foo" || n.Path("token").AsText() != "bar" {
+		t.Error("node bad")
+	}
+}
+
+func TestAppendSlice(t *testing.T) {
+	n := NewArrayNode()
+	n.Append([]string{"hello", "world"})
+	if n.Size() != 2 {
+		t.Errorf("size %d is not 2", n.Size())
+	}
+	if n.Get(0).AsText() != "hello" || n.Get(1).AsText() != "world" {
+		t.Error("append didn't work")
+	}
+	n.Append([]int{1, 2, 3})
+	if n.String() != `["hello","world",1,2,3]` {
+		t.Errorf("%s isn't right", n.String())
+	}
+}

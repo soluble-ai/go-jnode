@@ -18,6 +18,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -183,6 +184,16 @@ func (n *Node) IsMissing() bool {
 // IsNull returns true if the Node is the NullNode
 func (n *Node) IsNull() bool {
 	return n == NullNode
+}
+
+// Unwrap returns the generic value from a Node
+func (n *Node) Unwrap() interface{} {
+	switch n.GetType() {
+	case Array:
+		return *n.toSlicePtr()
+	default:
+		return n.value
+	}
 }
 
 // Size returns the length of an Array, the number of fields
@@ -398,6 +409,8 @@ func (n *Node) PutArrayE(name string) (*Node, error) {
 
 // Append adds a new element to an Array Node and returns
 // the Array.  Panics if the Node is not an Array.
+// The element may itself be a slice, in which case the
+// slice is flattened into the array.
 func (n *Node) Append(value interface{}) *Node {
 	if a, err := n.AppendE(value); err == nil {
 		return a
@@ -413,7 +426,18 @@ func (n *Node) AppendE(value interface{}) (*Node, error) {
 		return nil, fmt.Errorf("node is not an array")
 	}
 	a := n.toSlicePtr()
-	*a = append(*a, denode(value))
+	v := reflect.ValueOf(value)
+	switch v.Kind() {
+	case reflect.Slice:
+		va := reflect.ValueOf(*a)
+		for i := 0; i < v.Len(); i++ {
+			va = reflect.Append(va, v.Index(i))
+		}
+		*a = va.Interface().([]interface{})
+	default:
+		*a = append(*a, denode(value))
+	}
+
 	return n, nil
 }
 

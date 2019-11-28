@@ -27,6 +27,9 @@ fmt.Println(n.Path("not-there").AsText()) // <empty-string>
 n.PutArray("list").Append(1).Append(2)    // adds an Array
 fmt.Println(n.Path("list").Get(1))        // 2
 
+// can also add slices, which get flattened
+n.Path("list").Append([]string{ "hello", "world" })
+
 m, _ := jnode.FromJSON(`{"code":200,"message":"howdy"})`)
 
 fmt.Println(m.Path("code").AsInt())       // 200

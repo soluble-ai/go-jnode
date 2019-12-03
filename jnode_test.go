@@ -276,3 +276,15 @@ func TestAppendSlice(t *testing.T) {
 		t.Errorf("%s isn't right", n.String())
 	}
 }
+
+func TestAddArray(t *testing.T) {
+	n := NewObjectNode()
+	n.Put("a", NewArrayNode())
+	n.Path("a").Append("hello").Append("world")
+	if n.Path("a").Size() != 2 {
+		t.Errorf("array doesn't contain 2 elements")
+	}
+	if n.String() != `{"a":["hello","world"]}` {
+		t.Error("string form wrong")
+	}
+}

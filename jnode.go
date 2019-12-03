@@ -23,8 +23,11 @@ import (
 	"strings"
 )
 
+//go:generate stringer -type=NodeType
+type NodeType int
+
 const (
-	Unknown = iota
+	Unknown NodeType = iota
 	Text
 	Number
 	Bool
@@ -141,7 +144,7 @@ func (n *Node) UnmarshalJSON(b []byte) error {
 }
 
 // GetType returns the type of a Node
-func (n *Node) GetType() int {
+func (n *Node) GetType() NodeType {
 	if n == MissingNode {
 		return Missing
 	}

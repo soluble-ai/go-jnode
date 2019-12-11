@@ -40,7 +40,7 @@ const (
 
 // MissingNode represents a missing node.  Path() will return
 // a MissingNode if the field is not found.
-var MissingNode *Node = &Node{}
+var MissingNode *Node = &Node{""}
 
 // NullNode represents the nil (json null) value.
 var NullNode *Node = &Node{}

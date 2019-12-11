@@ -48,6 +48,15 @@ func TestBasic(t *testing.T) {
 	}
 }
 
+func TestMissing(t *testing.T) {
+	if MissingNode.AsText() != "" {
+		t.Error()
+	}
+	if !NewObjectNode().Path("Foo").IsMissing() {
+		t.Error()
+	}
+}
+
 func TestBadNode(t *testing.T) {
 	assertPanic(t, func() { _ = NewNode([]int{1, 2, 3}) })
 }

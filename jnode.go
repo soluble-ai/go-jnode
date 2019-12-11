@@ -156,7 +156,7 @@ func (n *Node) GetType() NodeType {
 	if n == MissingNode {
 		return Missing
 	}
-	if n == NullNode {
+	if n.IsNull() {
 		return Null
 	}
 	switch n.value.(type) {
@@ -201,7 +201,7 @@ func (n *Node) IsMissing() bool {
 
 // IsNull returns true if the Node is the NullNode
 func (n *Node) IsNull() bool {
-	return n == NullNode
+	return n.value == nil
 }
 
 // Unwrap returns the generic value from a Node
@@ -357,6 +357,8 @@ func denode(value interface{}) (interface{}, error) {
 		return v, nil
 	case []interface{}, map[string]interface{}:
 		return pointSlices(value), nil
+	case nil:
+		return nil, nil
 	default:
 		return nil, fmt.Errorf("%T cannot be used as a json value", value)
 	}
@@ -478,7 +480,11 @@ func (n *Node) AppendE(value interface{}) error {
 	case reflect.Slice:
 		va := reflect.ValueOf(*a)
 		for i := 0; i < v.Len(); i++ {
-			va = reflect.Append(va, v.Index(i))
+			e, err := denode(v.Index(i).Interface())
+			if err != nil {
+				return err
+			}
+			va = reflect.Append(va, reflect.ValueOf(e))
 		}
 		*a = va.Interface().([]interface{})
 	default:

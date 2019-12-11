@@ -207,6 +207,10 @@ func TestObject(t *testing.T) {
 	if len(e) != 2 || e["greeting"] == nil {
 		t.Fail()
 	}
+	n.Put("empty", nil)
+	if !n.Path("empty").IsNull() || n.Path("empty").GetType() != Null {
+		t.Fail()
+	}
 	x := NewNode("hello")
 	assertPanic(t, func() { x.Put("x", 1) })
 	assertPanic(t, func() { x.PutObject("x") })
@@ -250,6 +254,10 @@ func TestArray(t *testing.T) {
 	n.Set(1, "everyone").Set(0, "howdy")
 	if n.String() != `["howdy","everyone"]` {
 		t.Fail()
+	}
+	n.Append([]interface{}{NewNode("hello"), 5})
+	if n.Size() != 4 || n.Get(2).AsText() != "hello" || n.Get(3).AsInt() != 5 {
+		t.Errorf("append didn't work")
 	}
 	assertPanic(t, func() { n.Set(-1, "fail") })
 	x := NewNode("hello")

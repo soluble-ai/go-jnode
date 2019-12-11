@@ -40,6 +40,10 @@ int, float, array, or object.)  Here's some ways to create a Node:
 	// Can also build from JSON
 	n, _ := json.FromJSON([]byte(`{"three": 3}`)
 
+The Put methods accept simple types, slices, maps and other
+Node's.  For complex types the argument will not be copied,
+and it may be modified (see implementation note below.)
+
 Navigation
 
 For Object Node's, use Path:
@@ -72,6 +76,10 @@ A Node holds an interface{}, which stores the unwrapped Go value.
 For Array values ([]interface{}) the Node holds a pointer to the slice
 instead of the slice directly.  (This is necessary because Append creates
 new slices.)
+
+For this reason, when jnode accepts an []interface{} or
+map[string]interface{} (via Put, Append, FromSlice, or FromMap)
+it will rewrite any slices to pointers to slices.
 
 During JSON marshalling the code walks through the value replacing
 pointers to slices with slices, then undoing the replacement afterwards.

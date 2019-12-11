@@ -36,6 +36,9 @@ func TestBasic(t *testing.T) {
 	if n.AsFloat() != 0 {
 		t.Fail()
 	}
+	if n.IsContainer() {
+		t.Fail()
+	}
 	n = NewNode(nil)
 	if !n.IsNull() || n.GetType() != Null {
 		t.Errorf("null node bad")
@@ -89,6 +92,11 @@ func TestNumbers(t *testing.T) {
 	assert100(t, NewNode(int16(100)))
 	assert100(t, NewNode(int32(100)))
 	assert100(t, NewNode(int64(100)))
+	assert100(t, NewNode(uint(100)))
+	assert100(t, NewNode(uint8(100)))
+	assert100(t, NewNode(uint16(100)))
+	assert100(t, NewNode(uint32(100)))
+	assert100(t, NewNode(uint64(100)))
 	assert100(t, NewNode(float32(100)))
 	assert100(t, NewNode(float64(100)))
 	assert100(t, NewNode("100"))
@@ -183,6 +191,9 @@ func TestObject(t *testing.T) {
 	if !n.Path("container").Path("value").AsBool() {
 		t.Fail()
 	}
+	if !n.IsContainer() {
+		t.Fail()
+	}
 	e := n.Entries()
 	if len(e) != 2 || e["greeting"] == nil {
 		t.Fail()
@@ -205,6 +216,9 @@ func TestUnwrapNodes(t *testing.T) {
 	if n.Path("one").Get(0).AsInt() != 1 {
 		t.Fail()
 	}
+	if _, ok := n.Unwrap().(map[string]interface{}); !ok {
+		t.Error("unwrap didn't")
+	}
 }
 
 func TestArray(t *testing.T) {
@@ -224,8 +238,14 @@ func TestArray(t *testing.T) {
 	if !n.Get(-1).IsMissing() || !n.Get(100).IsMissing() {
 		t.Errorf("out of bounds wasn't missing")
 	}
+	n.Set(1, "everyone").Set(0, "howdy")
+	if n.String() != `["howdy","everyone"]` {
+		t.Fail()
+	}
+	assertPanic(t, func() { n.Set(-1, "fail") })
 	x := NewNode("hello")
 	assertPanic(t, func() { x.Append("foo") })
+	assertPanic(t, func() { x.Set(0, "foo") })
 }
 
 func TestPutArray(t *testing.T) {
@@ -286,5 +306,13 @@ func TestAddArray(t *testing.T) {
 	}
 	if n.String() != `{"a":["hello","world"]}` {
 		t.Error("string form wrong")
+	}
+}
+
+func TestFromMap(t *testing.T) {
+	x := map[string]interface{}{"a": 1, "b": []interface{}{2, 3, 4}, "hello": "world"}
+	n := FromMap(x)
+	if n.Size() != 3 || n.Path("hello").AsText() != "world" || n.Path("b").Size() != 3 {
+		t.Error("FromMap didn't work")
 	}
 }

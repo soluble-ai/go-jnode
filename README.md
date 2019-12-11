@@ -1,5 +1,7 @@
 # go-jnode
 
+[![GoDoc](https://godoc.org/gopkg.in/yaml.v2?status.svg)](https://godoc.org/gopkg.in/yaml.v2)
+
 `go-jnode` is a Go module that makes using generic JSON structures easy.
 Its API is modeled on Java's [jackson tree model](https://github.com/FasterXML/jackson-databind).
 

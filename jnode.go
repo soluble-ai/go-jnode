@@ -56,7 +56,8 @@ func NewNode(value interface{}) *Node {
 	switch v := value.(type) {
 	case nil:
 		return NullNode
-	case string, bool, int, int8, int16, int32, int64, float32, float64, []byte:
+	case string, bool, int, int8, int16, int32, int64, float32, float64, []byte,
+		uint, uint8, uint16, uint32, uint64:
 		return &Node{v}
 	default:
 		panic("NewNode accepts only simple values")
@@ -84,6 +85,13 @@ func FromJSON(data []byte) (*Node, error) {
 	} else {
 		return MissingNode, err
 	}
+}
+
+// FromMap creates a Node from a generic map.  The map
+// may be modified (see implementation note.)
+func FromMap(value map[string]interface{}) *Node {
+	v, _ := denode(value)
+	return &Node{v}
 }
 
 // String returns the Node formatted as JSON
@@ -158,7 +166,8 @@ func (n *Node) GetType() NodeType {
 		return Object
 	case string:
 		return Text
-	case int, int8, int16, int32, int64, float32, float64:
+	case int, int8, int16, int32, int64, float32, float64,
+		uint, uint8, uint16, uint32, uint64:
 		return Number
 	case bool:
 		return Bool
@@ -177,6 +186,12 @@ func (n *Node) IsArray() bool {
 // IsObject returns true if the Node is an Object
 func (n *Node) IsObject() bool {
 	return n.GetType() == Object
+}
+
+// IsContainer returns true if the Node is an Object or Array
+func (n *Node) IsContainer() bool {
+	t := n.GetType()
+	return t == Array || t == Object
 }
 
 // IsMissing returns true if the Node is missing
@@ -222,6 +237,16 @@ func (n *Node) AsText() string {
 // Otherwise returns 0.
 func (n *Node) AsInt() int {
 	switch v := n.value.(type) {
+	case uint:
+		return int(v)
+	case uint8:
+		return int(v)
+	case uint16:
+		return int(v)
+	case uint32:
+		return int(v)
+	case uint64:
+		return int(v)
 	case int:
 		return v
 	case int8:
@@ -256,6 +281,16 @@ func (n *Node) AsInt() int {
 // For bool returns 0 or 1.  Otherwise returns 0.
 func (n *Node) AsFloat() float64 {
 	switch v := n.value.(type) {
+	case uint:
+		return float64(v)
+	case uint8:
+		return float64(v)
+	case uint16:
+		return float64(v)
+	case uint32:
+		return float64(v)
+	case uint64:
+		return float64(v)
 	case int:
 		return float64(v)
 	case int8:
@@ -313,12 +348,17 @@ func (n *Node) AsBinary() ([]byte, error) {
 	}
 }
 
-func denode(value interface{}) interface{} {
+func denode(value interface{}) (interface{}, error) {
 	switch v := value.(type) {
 	case *Node:
-		return v.value
+		return v.value, nil
+	case int, int8, int16, int32, int64, float32, float64, string, bool,
+		uint, uint8, uint16, uint32, uint64:
+		return v, nil
+	case []interface{}, map[string]interface{}:
+		return pointSlices(value), nil
 	default:
-		return value
+		return nil, fmt.Errorf("%T cannot be used as a json value", value)
 	}
 }
 
@@ -328,7 +368,7 @@ func (n *Node) Put(name string, value interface{}) *Node {
 	if m, err := n.PutE(name, value); err == nil {
 		return m
 	} else {
-		panic(err)
+		panic(err.Error())
 	}
 }
 
@@ -338,8 +378,12 @@ func (n *Node) PutE(name string, value interface{}) (*Node, error) {
 	if !n.IsObject() {
 		return nil, fmt.Errorf("not an object")
 	}
-	n.toMap()[name] = denode(value)
-	return n, nil
+	if v, err := denode(value); err == nil {
+		n.toMap()[name] = v
+		return n, nil
+	} else {
+		return nil, err
+	}
 }
 
 // PutObject sets the value of a field to a new Object Node
@@ -349,7 +393,7 @@ func (n *Node) PutObject(name string) *Node {
 	if o, err := n.PutObjectE(name); err == nil {
 		return o
 	} else {
-		panic(err)
+		panic(err.Error())
 	}
 }
 
@@ -394,7 +438,7 @@ func (n *Node) PutArray(name string) *Node {
 	if a, err := n.PutArrayE(name); err == nil {
 		return a
 	} else {
-		panic(err)
+		panic(err.Error())
 	}
 }
 
@@ -415,18 +459,18 @@ func (n *Node) PutArrayE(name string) (*Node, error) {
 // The element may itself be a slice, in which case the
 // slice is flattened into the array.
 func (n *Node) Append(value interface{}) *Node {
-	if a, err := n.AppendE(value); err == nil {
-		return a
+	if err := n.AppendE(value); err == nil {
+		return n
 	} else {
-		panic(err)
+		panic(err.Error())
 	}
 }
 
 // AppendE adds a new element to an Array Node and returns
 // the Array.  Returns an error if the Node is not an Array.
-func (n *Node) AppendE(value interface{}) (*Node, error) {
+func (n *Node) AppendE(value interface{}) error {
 	if !n.IsArray() {
-		return nil, fmt.Errorf("node is not an array")
+		return fmt.Errorf("node is not an array")
 	}
 	a := n.toSlicePtr()
 	v := reflect.ValueOf(value)
@@ -438,10 +482,40 @@ func (n *Node) AppendE(value interface{}) (*Node, error) {
 		}
 		*a = va.Interface().([]interface{})
 	default:
-		*a = append(*a, denode(value))
+		if v, err := denode(value); err == nil {
+			*a = append(*a, v)
+		} else {
+			return err
+		}
 	}
 
-	return n, nil
+	return nil
+}
+
+// SetE sets the i'th element of an array node to a value.
+func (n *Node) SetE(i int, value interface{}) error {
+	if !n.IsArray() {
+		return fmt.Errorf("node is not an array")
+	}
+	a := *n.toSlicePtr()
+	if i < 0 || i >= len(a) {
+		return fmt.Errorf("index %d is outside the bounds of the array (length %d)", i, len(a))
+	}
+	v, err := denode(value)
+	if err != nil {
+		return err
+	}
+	a[i] = v
+	return nil
+}
+
+// Set sets the i'th element of an array to a value.  Panics
+// if i is out of bounds, or the value is invalid.
+func (n *Node) Set(i int, value interface{}) *Node {
+	if err := n.SetE(i, value); err != nil {
+		panic(err.Error())
+	}
+	return n
 }
 
 // Elements returns the elements of an Array Node (or an

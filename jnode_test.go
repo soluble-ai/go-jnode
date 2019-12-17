@@ -333,3 +333,14 @@ func TestFromMap(t *testing.T) {
 		t.Error("FromMap didn't work")
 	}
 }
+
+func TestNull(t *testing.T) {
+	var n *Node
+	if !n.IsNull() || n.String() != "null" {
+		t.Fail()
+	}
+	n = NewObjectNode().Put("x", nil)
+	if !n.Path("x").IsNull() || n.String() != `{"x":null}` {
+		t.Error(n)
+	}
+}

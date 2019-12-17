@@ -201,7 +201,7 @@ func (n *Node) IsMissing() bool {
 
 // IsNull returns true if the Node is the NullNode
 func (n *Node) IsNull() bool {
-	return n.value == nil
+	return n == nil || n.value == nil
 }
 
 // Unwrap returns the generic value from a Node

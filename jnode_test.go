@@ -344,3 +344,18 @@ func TestNull(t *testing.T) {
 		t.Error(n)
 	}
 }
+
+func TestFromSlice(t *testing.T) {
+	a := FromSlice([]string{"hello", "world"})
+	if !a.IsArray() || a.Size() != 2 || a.Get(1).AsText() != "world" {
+		t.Error(a)
+	}
+	n := a.AppendObject()
+	if !n.IsObject() {
+		t.Fatal(a)
+	}
+	n.Put("one", 1)
+	if a.Size() != 3 || a.Get(2).Path("one").AsInt() != 1 {
+		t.Error(a)
+	}
+}

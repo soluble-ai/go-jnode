@@ -94,6 +94,16 @@ func FromMap(value map[string]interface{}) *Node {
 	return &Node{v}
 }
 
+// FromSlice creates an array Node from a slice.
+func FromSlice(slice interface{}) *Node {
+	a := NewArrayNode()
+	// this actually will accept values other than slices
+	// maybe the name FromSlice is wrong, or we should validate
+	// the slice is really a slice
+	a.Append(slice)
+	return a
+}
+
 // String returns the Node formatted as JSON
 func (n *Node) String() string {
 	buf, _ := json.Marshal(n)
@@ -494,8 +504,27 @@ func (n *Node) AppendE(value interface{}) error {
 			return err
 		}
 	}
-
 	return nil
+}
+
+// AppendObject adds a new ObjectNode to an array node, and returns
+// the new object node.  Panics if the node is not an array node.
+func (n *Node) AppendObject() *Node {
+	o, err := n.AppendObjectE()
+	if err != nil {
+		panic(err.Error())
+	}
+	return o
+}
+
+// AppendObjectE adds a new ObjectNode to an array node and returns
+// the new array node. Returns an error if this node is not an array node.
+func (n *Node) AppendObjectE() (*Node, error) {
+	o := NewObjectNode()
+	if err := n.AppendE(o); err != nil {
+		return nil, err
+	}
+	return o, nil
 }
 
 // SetE sets the i'th element of an array node to a value.

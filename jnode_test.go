@@ -268,7 +268,7 @@ func TestArray(t *testing.T) {
 func TestPutArray(t *testing.T) {
 	n := NewObjectNode()
 	a := n.PutArray("list")
-	if n.toMap()["list"] != a.value {
+	if n.ToMap()["list"] != a.value {
 		t.Error("array value not correct")
 	}
 	if n.Size() != 1 {

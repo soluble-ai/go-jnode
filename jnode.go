@@ -229,7 +229,7 @@ func (n *Node) Unwrap() interface{} {
 func (n *Node) Size() int {
 	switch n.GetType() {
 	case Object:
-		return len(n.toMap())
+		return len(n.ToMap())
 	case Array:
 		return len(*n.toSlicePtr())
 	default:
@@ -391,7 +391,7 @@ func (n *Node) PutE(name string, value interface{}) (*Node, error) {
 		return nil, fmt.Errorf("not an object")
 	}
 	if v, err := denode(value); err == nil {
-		n.toMap()[name] = v
+		n.ToMap()[name] = v
 		return n, nil
 	} else {
 		return nil, err
@@ -417,7 +417,7 @@ func (n *Node) PutObjectE(name string) (*Node, error) {
 		return nil, fmt.Errorf("not an object")
 	}
 	o := make(map[string]interface{})
-	n.toMap()[name] = o
+	n.ToMap()[name] = o
 	return &Node{o}, nil
 }
 
@@ -427,7 +427,7 @@ func (n *Node) Entries() map[string]*Node {
 	if !n.IsObject() {
 		return make(map[string]*Node)
 	}
-	m := n.toMap()
+	m := n.ToMap()
 	e := make(map[string]*Node, len(m))
 	for k, v := range m {
 		e[k] = &Node{v}
@@ -435,7 +435,9 @@ func (n *Node) Entries() map[string]*Node {
 	return e
 }
 
-func (n *Node) toMap() map[string]interface{} {
+// ToMap returns this node as a generic map[string]interface{}
+// via a cast.  Panics if this node is not an Object.
+func (n *Node) ToMap() map[string]interface{} {
 	return n.value.(map[string]interface{})
 }
 
@@ -462,7 +464,7 @@ func (n *Node) PutArrayE(name string) (*Node, error) {
 		return nil, fmt.Errorf("not an object")
 	}
 	a := make([]interface{}, 0, 5)
-	n.toMap()[name] = &a
+	n.ToMap()[name] = &a
 	return &Node{&a}, nil
 }
 
@@ -588,7 +590,7 @@ func (n *Node) Path(name string) *Node {
 	if !n.IsObject() {
 		return MissingNode
 	}
-	if value, ok := n.toMap()[name]; ok {
+	if value, ok := n.ToMap()[name]; ok {
 		return &Node{value}
 	} else {
 		return MissingNode

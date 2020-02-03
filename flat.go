@@ -1,99 +1,99 @@
 package jnode
 
-import "container/list"
-
-type frame struct {
-	obj    *Node
-	name   string
-	append bool
-}
-
-func (f *frame) setValue(value interface{}) {
-	if f.append {
-		a := f.obj.Path(f.name)
-		if !a.IsArray() {
-			a = f.obj.PutArray(f.name)
-		}
-		a.Append(value)
-	} else {
-		f.obj.Put(f.name, value)
-	}
-}
-
-func pop(stack *list.List) *frame {
-	e := stack.Front()
-	defer stack.Remove(e)
-	return e.Value.(*frame)
-}
-
-func peek(stack *list.List) *frame {
-	return stack.Front().Value.(*frame)
-}
-
-func newFrame() *frame {
-	return &frame{NewObjectNode(), "", false}
-}
+import (
+	"fmt"
+	"strings"
+)
 
 // FromFlatString converts a string into an object Node.  It accepts a string in the form:
 //
 //     field1=value1,field2=value2,....
 //     field1={subobj_field1=value1,...}
-//     field1[list_value1,list_value2]
+//     field1=[list_value1,list_value2]
 //
 // The first form sets the fields and values of the object.  The second form sets the
 // fields and values of a nested object.  The final form sets the values of an array.
-func FromFlatString(s string) *Node {
-	var state = ' '
-	var nameStart, valueStart int
-	stack := list.New()
-	stack.PushFront(newFrame())
-	for i, ch := range s {
-		if state == ' ' && ch == ' ' {
-			continue
+func FromFlatString(s string) (*Node, error) {
+	node := NewObjectNode()
+	for len(s) > 0 {
+		n, err := parseAssignment(node, s, ",\x00")
+		if err != nil {
+			return nil, err
 		}
-		top := peek(stack)
-		switch state {
-		case ' ':
-			nameStart = i
-			state = '='
-		case '=':
-			if ch == '=' || ch == '[' {
-				name := s[nameStart:i]
-				top.name = name
-				top.append = ch == '['
-				valueStart = i + 1
-				state = '{'
-			}
-		case '{':
-			if ch == '{' {
-				stack.PushFront(newFrame())
-				state = ' '
-			} else if ch != ' ' {
-				state = ','
-			}
-		case ',':
-			if ch == ',' || ch == '}' || (top.append && ch == ']') {
-				top.setValue(s[valueStart:i])
-				if top.append {
-					if ch == ']' {
-						top.append = false
-						top.name = ""
-						state = ' '
-					}
-				} else {
-					state = ' '
-					if ch == '}' {
-						val := pop(stack)
-						peek(stack).setValue(val.obj)
-						state = ' '
-					}
-				}
+		if len(s) == n {
+			break
+		}
+		s = s[n+1:]
+	}
+	return node, nil
+}
+
+func parseAssignment(node *Node, s, terms string) (int, error) {
+	eq := strings.Index(s, "=")
+	if eq < 0 {
+		return 0, fmt.Errorf("missing '=' in assignment")
+	}
+	name := s[0:eq]
+	val, n, err := parseValue(s[eq+1:], terms)
+	if err != nil {
+		return 0, err
+	}
+	node.Put(name, val)
+	return eq + n + 1, nil
+}
+
+func parseValue(s, terms string) (interface{}, int, error) {
+	if len(s) == 0 {
+		return "", 0, nil
+	}
+	switch s[0] {
+	case '[':
+		val, n, err := parseArray(s[1:])
+		return val, n + 1, err
+	case '{':
+		val, n, err := parseObject(s[1:])
+		return val, n + 1, err
+	default:
+		for i, ch := range s {
+			if strings.ContainsRune(terms, ch) {
+				return s[0:i], i, nil
 			}
 		}
+		if !strings.Contains(terms, "\x00") {
+			return nil, 0, fmt.Errorf("unexpected end of input")
+		}
+		return s, len(s), nil
 	}
-	if state == ',' {
-		top := stack.Front().Value.(*frame)
-		top.setValue(s[valueStart:])
+}
+
+func parseArray(s string) (interface{}, int, error) {
+	a := NewArrayNode()
+	k := 0
+	for {
+		val, n, err := parseValue(s[k:], ",]")
+		if err != nil {
+			return nil, 0, err
+		}
+		k += n
+		a.Append(val)
+		if s[k] == ']' {
+			return a, k + 1, nil
+		}
 	}
-	return pop(stack).obj
+}
+
+func parseObject(s string) (interface{}, int, error) {
+	obj := NewObjectNode()
+	k := 0
+	for {
+		n, err := parseAssignment(obj, s[k:], ",}")
+		if err != nil {
+			return nil, 0, err
+		}
+		k += n
+		if s[k] == '}' {
+			return obj, k + 1, nil
+		}
+		k++
+	}
 }

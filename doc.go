@@ -41,7 +41,7 @@ int, float, array, or object.)  Here's some ways to create a Node:
 	n, _ := json.FromJSON([]byte(`{"three": 3}`)
 
 The Put methods accept simple types, slices, maps and other
-Node's.  For complex types the argument will not be copied,
+Node's.  For complex types the argument will be copied,
 and it may be modified (see implementation note below.)
 
 Navigation

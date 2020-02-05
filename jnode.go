@@ -398,6 +398,15 @@ func (n *Node) PutE(name string, value interface{}) (*Node, error) {
 	}
 }
 
+// Remove removes a field of an Object Node.  Remove is a no-op
+// if the node is not an object, or doesn't contain the field.
+func (n *Node) Remove(name string) *Node {
+	if n.IsObject() {
+		delete(n.ToMap(), name)
+	}
+	return n
+}
+
 // PutObject sets the value of a field to a new Object Node
 // and returns the new Object Node.  Panics if the Node is not
 // an Object.

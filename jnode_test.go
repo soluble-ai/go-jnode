@@ -359,3 +359,13 @@ func TestFromSlice(t *testing.T) {
 		t.Error(a)
 	}
 }
+
+func TestRemove(t *testing.T) {
+	var n *Node
+	n.Remove("greeting")
+	n = NewObjectNode().Put("greeting", "hello").Put("subject", "world")
+	n.Remove("greeting")
+	if !n.Path("greeting").IsMissing() || n.Path("subject").IsMissing() {
+		t.Error(n)
+	}
+}

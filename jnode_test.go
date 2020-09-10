@@ -17,6 +17,7 @@ package jnode
 import (
 	"bytes"
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -367,5 +368,24 @@ func TestRemove(t *testing.T) {
 	n.Remove("greeting")
 	if !n.Path("greeting").IsMissing() || n.Path("subject").IsMissing() {
 		t.Error(n)
+	}
+}
+
+func TestJSONNumber(t *testing.T) {
+	d := json.NewDecoder(strings.NewReader(`{"i":123456789,"f":3.141592,"s":"hello"}`))
+	d.UseNumber()
+	var m map[string]interface{}
+	if err := d.Decode(&m); err != nil {
+		t.Fatal(err)
+	}
+	if i, _ := m["i"].(json.Number).Int64(); i != int64(123456789) {
+		t.Error(i)
+	}
+	n := FromMap(m)
+	if i := n.Path("i"); i.AsInt() != 123456789 {
+		t.Error(i)
+	}
+	if f := n.Path("f"); f.AsFloat() != 3.141592 {
+		t.Error(f)
 	}
 }

@@ -177,7 +177,7 @@ func (n *Node) GetType() NodeType {
 	case string:
 		return Text
 	case int, int8, int16, int32, int64, float32, float64,
-		uint, uint8, uint16, uint32, uint64:
+		uint, uint8, uint16, uint32, uint64, json.Number:
 		return Number
 	case bool:
 		return Bool
@@ -212,6 +212,11 @@ func (n *Node) IsMissing() bool {
 // IsNull returns true if the Node is the NullNode
 func (n *Node) IsNull() bool {
 	return n == nil || n.value == nil
+}
+
+// IsNumber returns true fi the Node is a number
+func (n *Node) IsNumber() bool {
+	return n.GetType() == Number
 }
 
 // Unwrap returns the generic value from a Node
@@ -281,6 +286,11 @@ func (n *Node) AsInt() int {
 		return int(v)
 	case float64:
 		return int(v)
+	case json.Number:
+		if i, err := v.Int64(); err == nil {
+			return int(i)
+		}
+		return 0
 	default:
 		return 0
 	}
@@ -325,6 +335,11 @@ func (n *Node) AsFloat() float64 {
 		return float64(v)
 	case float64:
 		return v
+	case json.Number:
+		if f, err := v.Float64(); err == nil {
+			return f
+		}
+		return 0
 	default:
 		return 0
 	}
